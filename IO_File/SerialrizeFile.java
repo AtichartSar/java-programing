@@ -1,5 +1,5 @@
 package IO;
-
+//writeFile แบบ object
 
 import IO.Customer;
 import java.io.FileInputStream;
@@ -10,7 +10,7 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.util.ArrayList;
 import java.util.List;
-//write แบบ object
+
 
 public class SerialrizeFile {
     public static void main(String[] args) throws IOException, ClassNotFoundException  {
