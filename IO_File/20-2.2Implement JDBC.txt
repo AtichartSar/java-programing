@@ -1,0 +1,108 @@
+/*
+ * To change this license header, choose License Headers in Project Properties.
+ * To change this template file, choose Tools | Templates
+ * and open the template in the editor.
+ */
+package javaapplicationtestjdbc;
+
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.List;
+
+/*
+1.แอดไรบราลี่
+*/
+/**
+ *
+ * @author Acer
+ */
+public class JavaApplicationTestJDBC {
+
+    /**
+     * @param args the command line arguments
+     */
+    public static void main(String[] args) throws ClassNotFoundException, SQLException {
+        // TODO code application logic here
+        //1.โหลดไดรเวอคราส
+        Class.forName("org.apache.derby.jdbc.ClientDriver");
+        System.out.println("โหลดเสร็จละ");
+        
+        //2.เชื่อมต่อ
+        String user="app";
+        String password="app";
+        String url="jdbc:derby://localhost:1527/sample";
+        Connection con= DriverManager.getConnection(url, user, password);
+        if(con==null){
+            System.err.println("เชื่อมต่อมิได้");
+        }else{System.out.println("เชื่อมต่อหละ");}
+        
+        //3.สร้าง statement
+        Statement stm = con.createStatement();
+        String sql="select * From customer";
+        ResultSet rs= stm.executeQuery(sql);
+        
+        //4.วนลูปมาเก็บ
+        List<Customer> custs=new ArrayList<>();
+        while(rs.next()){
+            int id=rs.getInt(1);
+            String name=rs.getString(4);
+            String address=rs.getString(5);
+            custs.add(new Customer(id, name, address));   
+        }
+        //5.ปิด
+        rs.close();
+        stm.close();
+        con.close();
+        
+        
+        for (Customer cust : custs) {
+            System.out.println(cust.getId());
+            System.out.println(cust.getName());
+            System.out.println(cust.getAddress());
+            System.out.println("***************************");
+        }
+        
+    }
+    
+}
+class Customer{
+    private int id;
+    private String name;
+    private String address;
+
+    public Customer(int id, String name, String address) {
+        this.id = id;
+        this.name = name;
+        this.address = address;
+    }
+
+    public int getId() {
+        return id;
+    }
+
+    public void setId(int id) {
+        this.id = id;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public String getAddress() {
+        return address;
+    }
+
+    public void setAddress(String address) {
+        this.address = address;
+    }
+    
+
+}
