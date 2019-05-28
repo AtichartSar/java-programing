@@ -1,4 +1,3 @@
-
 /*
  * To change this license header, choose License Headers in Project Properties.
  * To change this template file, choose Tools | Templates
@@ -23,12 +22,16 @@ import java.util.List;
  */
 public class JavaApplicationTestJDBC {
 
-    /**
-     * @param args the command line arguments
-     */
-    public static void main(String[] args) throws ClassNotFoundException, SQLException {
-        // TODO code application logic here
-        //1.โหลดไดรเวอคราส
+    public static void main(String[] args)  {
+	Insert app = new Insert();
+	app.Insert(1,"zoo","25/22");
+}
+  
+}
+
+class Select{
+public void Select() throws ClassNotFoundException, SQLException{
+    //1.โหลดไดรเวอคราส
         Class.forName("org.apache.derby.jdbc.ClientDriver");
         System.out.println("โหลดเสร็จละ");
         
@@ -49,9 +52,9 @@ public class JavaApplicationTestJDBC {
         //4.วนลูปมาเก็บ
         List<Customer> custs=new ArrayList<>();
         while(rs.next()){
-            int id=rs.getInt(1);
-            String name=rs.getString(4);
-            String address=rs.getString(5);
+            int id=rs.getInt("id");
+            String name=rs.getString("name");
+            String address=rs.getString("address");
             custs.add(new Customer(id, name, address));   
         }
         //5.ปิด
@@ -68,8 +71,69 @@ public class JavaApplicationTestJDBC {
         }
         
     }
-    
 }
+}
+
+class Insert{
+ public void Insert(int id,String name,String address) throws ClassNotFoundException, SQLException{
+    //1.โหลดไดรเวอคราส
+        Class.forName("org.apache.derby.jdbc.ClientDriver");
+        System.out.println("โหลดเสร็จละ");
+        
+        //2.เชื่อมต่อ
+        String user="app";
+        String password="app";
+        String url="jdbc:derby://localhost:1527/sample";
+        Connection con= DriverManager.getConnection(url, user, password);
+        if(con==null){
+            System.err.println("เชื่อมต่อมิได้");
+        }else{System.out.println("เชื่อมต่อหละ");}
+        
+        //3.สร้าง statement
+        
+        String sql="insert into Customer "
+		  +" (id,name,address) "
+		  +" values(?,?,?) ";
+	PreparedStatement pstmt = con.prepareStatement(sql)) {
+            pstmt.setInt(1, id);
+            pstmt.setString(2, name);
+	    pstmt.setString(3, address);
+            pstmt.executeUpdate();
+	}
+        //4.ปิด 
+        pstmt.close();
+        con.close();
+        
+    }
+}
+}
+
+class Delete{
+public void Delete(int id)throws ClassNotFoundException, SQLException{
+         //1.โหลดไดรเวอคราส
+        Class.forName("org.apache.derby.jdbc.ClientDriver");
+        System.out.println("โหลดเสร็จละ");
+        
+        //2.เชื่อมต่อ
+        String user="app";
+        String password="app";
+        String url="jdbc:derby://localhost:1527/sample";
+        Connection con= DriverManager.getConnection(url, user, password);
+        if(con==null){
+            System.err.println("เชื่อมต่อมิได้");
+        }else
+    //3.สร้าง statement
+	String sql="DELETE FROM Customer WHERE id = ?"
+	PreparedStatement pstmt = con.prepareStatement(sql)) {
+	pstmt.setInt(1,id);
+	pstmt.executeUpdate();
+        }
+      //4.ปิด 
+        pstmt.close();
+        con.close();    
+}
+}
+
 class Customer{
     private int id;
     private String name;
