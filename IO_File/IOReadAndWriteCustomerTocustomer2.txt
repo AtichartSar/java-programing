@@ -1,0 +1,52 @@
+package test;
+
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+
+
+
+public class testmain {
+
+    public static void main(String[] args) throws IOException {
+       FileReader fr=new FileReader("C:/Users/Acer/Downloads/java/Java SE8 Programming/chapter5/customer.txt");
+        BufferedReader br=new BufferedReader(fr);
+       List<Customer> custs=new ArrayList<>();
+       String read="";    
+        while ((read=br.readLine())!=null) {      
+            
+          String[] data= read.split(",");
+          Customer cust=new Customer(Integer.valueOf(data[0]),data[1],data[2]);
+          custs.add(cust); 
+      }
+        br.close();
+        fr.close();
+        for (Customer cust : custs) {
+            System.out.println(cust.getId());
+            System.out.println(cust.getName());
+            System.out.println(cust.getAddress());
+            System.out.println("************************");       
+        }
+        
+       
+       FileWriter fw=new FileWriter("C:/Users/Acer/Downloads/java/Java SE8 Programming/chapter5/customer2.txt");
+        BufferedWriter bw=new BufferedWriter(fw);
+        for (Customer cust : custs) {
+            bw.write(String.valueOf(cust.getId())+","+cust.getName()+","+cust.getAddress());
+            bw.newLine();
+        }
+
+        bw.close();
+        fw.close();
+    } 
+    
+        
+        
+     
+    }
+
+
