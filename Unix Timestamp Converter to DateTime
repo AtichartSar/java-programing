@@ -1,129 +1,85 @@
-import com.google.gson.*;
 
-import java.lang.reflect.Type;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
+import org.json.JSONArray;
+import org.json.JSONObject;
+import java.text.SimpleDateFormat;
 import java.util.Date;
-import java.util.Locale;
-
 public class main {
     public static void main(String []args){
         System.out.println(new Date());
 
-        GsonBuilder gsonBuilder = new GsonBuilder();
 
-        gsonBuilder.registerTypeAdapter(LocalDate.class, new LocalDateDeserializer());
+        String json = "{\n" +
+                "    \"pageInfo\": {\n" +
+                "            \"pageName\": \"Homepage\",\n" +
+                "            \"create\": 1577367668,\n" +
+                "            \"logo\": \"https://www.example.com/logo.jpg\"\n" +
+                "    },\n" +
+                "    \"posts\": [\n" +
+                "            {\n" +
+                "                \"post_id\": \"0123456789\",\n" +
+                "                \"actor_id\": \"1001\",\n" +
+                "                \"author_name\": \"Jane Doe\",\n" +
+                "                \"post_title\": \"How to parse JSON in Java\",\n" +
+                "                \"comments\": [],\n" +
+                "                \"time_of_post\": \"1234567890\"\n" +
+                "            }\n" +
+                "    ]\n" +
+                "}";
+        String jsonString = "{\n" +
+                "  \"name\" : \"Ronaldo\",\n" +
+                "  \"sport\" : \"soccer\",\n" +
+                "  \"age\" : 25,\n" +
+                "  \"id\" : 121,\n" +
+                "  \"lastScores\" : [ 2, 1, 3, 5, 0, 0, 1, 1 ]\n" +
+                "}";
 
-        gsonBuilder.registerTypeAdapter(LocalDateTime.class, new LocalDateTimeDeserializer());
+        JSONObject ojt=new JSONObject(jsonString);
+        String name = ojt.get("lastScores").toString();
+            JSONArray arr=ojt.getJSONArray("lastScores");
+        for (int i = 0; i <arr.length() ; i++) {
 
-        gsonBuilder.registerTypeAdapter(Date.class, new DateDeserializer());
+            System.out.println(arr.get(i));
+        }
+        System.out.println(arr);
+
+        JSONObject obj = new JSONObject(json);
+
+         String dat= obj.getJSONObject("pageInfo").get("create").toString();
+         Date d=new Date((long)Double.parseDouble(dat)*1000);
+         SimpleDateFormat sfd=new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
+        System.out.println(sfd.format(d));
+        obj.getJSONObject("pageInfo").put("pageName",sfd.format(d));
+        System.out.println("new " +obj);
 
 
-        Gson gson = gsonBuilder.setPrettyPrinting().create();
-        String orderJson = "{\r\n" + "  \"id\": 100,\r\n"
-                + "  \"orderName\": \"Book purchase\",\r\n" +
-                "  \"orderDesc\": \"Java Head First\",\r\n"
-                + "  \"orderCreatedDate\": \"26-Oct-2018\",\r\n" +
-                "  \"orderCreatedDateTime\": \"26::Oct::2018 11::09::05\",\r\n" +
-                "  \"orderCreatedZonedDateTime\": \"Oct 26 2018  11:09 AM\",\r\n" +
-                "  \"create\":1577286703230  \r\n" + "}";
 
 
-        System.out.println(gson.fromJson(orderJson,Order.class));
+
+        //get obj
+        String pageName = obj.getJSONObject("pageInfo").getString("pageName");
+        System.out.println(pageName);
+        //put obj
+        obj.getJSONObject("pageInfo").put("pageName","hiii");
+        System.out.println(obj);
+
+        JSONArray arrj=obj.getJSONArray("posts");
+        //get obj
+        for (int i = 0; i < arrj.length(); i++) {
+            JSONObject jos=arrj.getJSONObject(i);
+
+            System.out.println(jos.get("post_id"));
+        }
+        //put obj
+        for (int i = 0; i < arrj.length(); i++) {
+                JSONObject jo=arrj.getJSONObject(i);
+                jo.put("post_id",5555);
+//            System.out.println(jo.getString("post_id"));
+        }
+
+
+
     }
 
 }
 
 
-class DateDeserializer implements JsonDeserializer <Date>{
-    @Override
-    public Date deserialize(JsonElement json, Type typeOfT,
-                            JsonDeserializationContext context)
-            throws JsonParseException {
-        return json == null ? null : new Date(json.getAsJsonPrimitive().getAsLong());
-    }
-}
-
-class LocalDateDeserializer implements JsonDeserializer < LocalDate > {
-    @Override
-    public LocalDate deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context)
-            throws JsonParseException {
-        return LocalDate.parse(json.getAsString(),
-                DateTimeFormatter.ofPattern("dd-MMM-yyyy").withLocale(Locale.ENGLISH));
-    }
-}
-
-class LocalDateTimeDeserializer implements JsonDeserializer < LocalDateTime > {
-    @Override
-    public LocalDateTime deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context)
-            throws JsonParseException {
-        return LocalDateTime.parse(json.getAsString(),
-                DateTimeFormatter.ofPattern("dd::MMM::uuuu HH::mm::ss").withLocale(Locale.ENGLISH));
-    }}
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.util.Date;
-
-public class Order {
-    private int id;
-    private String orderName;
-    private String orderDesc;
-    private LocalDate orderCreatedDate;
-    private LocalDateTime orderCreatedDateTime;
-    private Date create;
-
-    public Date getCreate() {
-        return create;
-    }
-
-    public void setCreate(Date create) {
-        this.create = create;
-    }
-
-    public int getId() {
-        return id;
-    }
-
-    public void setId(int id) {
-        this.id = id;
-    }
-
-    public String getOrderName() {
-        return orderName;
-    }
-
-    public void setOrderName(String orderName) {
-        this.orderName = orderName;
-    }
-
-    public String getOrderDesc() {
-        return orderDesc;
-    }
-
-    public void setOrderDesc(String orderDesc) {
-        this.orderDesc = orderDesc;
-    }
-
-    public LocalDate getOrderCreatedDate() {
-        return orderCreatedDate;
-    }
-
-    public void setOrderCreatedDate(LocalDate orderCreatedDate) {
-        this.orderCreatedDate = orderCreatedDate;
-    }
-
-    public LocalDateTime getOrderCreatedDateTime() {
-        return orderCreatedDateTime;
-    }
-
-    public void setOrderCreatedDateTime(LocalDateTime orderCreatedDateTime) {
-        this.orderCreatedDateTime = orderCreatedDateTime;
-    }
-
-    @Override
-    public String toString() {
-        return "Order [id=" + id + ", orderName=" + orderName + ", orderDesc=" + orderDesc + ", orderCreatedDate=" +
-                orderCreatedDate + ", orderCreatedDateTime=" + orderCreatedDateTime + "]"+"create :"+create;
-    }
-}
