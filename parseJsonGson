@@ -1,0 +1,108 @@
+
+import com.google.gson.Gson;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonParser;
+import org.json.JSONArray;
+import org.json.JSONObject;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+public class main {
+    public static void main(String[] args) {
+        System.out.println(new Date());
+
+
+        String json = "{\n" +
+                "    \"pageInfo\": {\n" +
+                "            \"pageName\": \"Homepage\",\n" +
+                "            \"create\": 1577367668,\n" +
+                "            \"logo\": \"https://www.example.com/logo.jpg\"\n" +
+                "    },\n" +
+                "    \"posts\": [\n" +
+                "            {\n" +
+                "                \"post_id\": \"0123456789\",\n" +
+                "                \"actor_id\": \"1001\",\n" +
+                "                \"author_name\": \"Jane Doe\",\n" +
+                "                \"post_title\": \"How to parse JSON in Java\",\n" +
+                "                \"comments\": [],\n" +
+                "                \"time_of_post\": \"1234567890\"\n" +
+                "            }\n" +
+                "    ]\n" +
+                "}";
+        String jsonString = "{\n" +
+                "  \"name\" : \"Ron  aldo\",\n" +
+                "  \"sport\" : \"soccer\",\n" +
+                "  \"age\" : 25,\n" +
+                "  \"id\" : 121\n" +
+                "}";
+
+
+
+try {
+            //parse json to gson
+            Gson gson = new Gson();
+            sport gsonSport= gson.fromJson(jsonString,sport.class);
+
+            //parse gson to json
+            String jsString=gson.toJson(gsonSport);
+            JSONObject jo=new JSONObject(jsString);
+            String name=jo.get("name").toString();
+
+            System.out.println("modelSport :"+gsonSport);
+
+            System.out.println("Json :"+jo);
+
+        }catch (Exception e){
+            System.out.println(e);
+        }
+
+    }
+
+}
+ class sport{
+    String name;
+    String sport;
+    int age;
+    int id;
+
+     @Override
+     public String toString() {
+         return "sport{" +
+                 "name='" + name + '\'' +
+                 ", sport='" + sport + '\'' +
+                 ", age=" + age +
+                 ", id=" + id +
+                 '}';
+     }
+
+     public String getName() {
+         return name;
+     }
+
+     public void setName(String name) {
+         this.name = name;
+     }
+
+     public String getSport() {
+         return sport;
+     }
+
+     public void setSport(String sport) {
+         this.sport = sport;
+     }
+
+     public int getAge() {
+         return age;
+     }
+
+     public void setAge(int age) {
+         this.age = age;
+     }
+
+     public int getId() {
+         return id;
+     }
+
+     public void setId(int id) {
+         this.id = id;
+     }
+ }
