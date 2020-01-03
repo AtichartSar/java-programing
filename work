@@ -1,0 +1,36 @@
+{
+  "status": 200,
+  "message": "Get Report Selling successful",
+  "entries": [
+    {
+      "dateTime": 1569897102,
+      "list": [
+        {
+          "title": "บริษัท ก.",
+          "amount": 50000
+        },
+        {
+          "title": "บริษัท ข.",
+          "amount": 9000
+        },
+        {
+          "title": "บริษัท ค.",
+          "amount": 12000
+        }
+      ]
+    },
+    {
+      "dateTime": 1572575502,
+      "list": [
+        {
+          "title": "บริษัท ข.",
+          "amount": 40000
+        },
+        {
+          "title": "บริษัท ค.",
+          "amount": 10000
+        }
+      ]
+    }
+  ]
+}
