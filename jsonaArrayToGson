@@ -1,0 +1,8 @@
+JsonObject jsonObject = new JsonParser().parse(object.getData().toString()).getAsJsonObject();
+System.out.println("jsonObject === "+jsonObject);
+
+JsonArray reminders = (JsonArray) jsonObject.get("reminders");
+System.out.println("reminders === "+reminders.size());
+
+for (int i = 0; i < reminders.size(); i++) {
+System.out.println("remindersSize"+i+" === "+" "+reminders.get(i));
