@@ -1,26 +1,71 @@
-else if(object.getTarget().equals("UpdateReminder") && object.getModule().equals("BIZReminder"))
+ else if(object.getTarget().equals("UpdateReminder") && object.getModule().equals("BIZReminder"))
                     {
 
                         JSONObject obj = new JSONObject(mJsonData.toString());
                         String reminders = obj.get("reminders").toString();
                         Gson gson = new Gson();
-                        TrxReminder[] dataTrx = gson.fromJson(reminders, TrxReminder[].class);
-
-                        for (TrxReminder trxReminder : dataTrx) {
-                            
+                        Type listType = new TypeToken<ArrayList<TrxReminder>>(){}.getType();
+                        List<TrxReminder> listTrxReminder = gson.fromJson(reminders, listType);
+                        for (TrxReminder trxReminder : listTrxReminder) {
+                            LOG.info("trxReminder"+trxReminder);
+                                                   
                             TrxReminder newTrx = session.get(TrxReminder.class, trxReminder.getUniqueID());
                             if(trxReminder.getTransactionTypeID() != null) newTrx.setTransactionTypeID(trxReminder.getTransactionTypeID());
-                            if(trxReminder.getGroupID() != null) newTrx.setGroupID(trxReminder.getGroupID());
-                            if(trxReminder.getCategoryID() != null) newTrx.setCategoryID(trxReminder.getCategoryID());
-                            if(trxReminder.getAmount() != null) newTrx.setAmount(trxReminder.getAmount());
-                            if(trxReminder.getMessage() != null) newTrx.setMessage(trxReminder.getMessage());
+                            if(trxReminder.getGroupID() != null)           newTrx.setGroupID(trxReminder.getGroupID());
+                            if(trxReminder.getCategoryID() != null)         newTrx.setCategoryID(trxReminder.getCategoryID());
+                            if(trxReminder.getAmount() != null)            newTrx.setAmount(trxReminder.getAmount());
+                            if(trxReminder.getMessage() != null)           newTrx.setMessage(trxReminder.getMessage());
                             session.update(newTrx);
                             session.flush();
 
-                            LOG.info("helllllllll" + trxReminder);
+                            
+                            StringBuilder hql=new StringBuilder();
+                            hql.append(" FROM ").append(TrxReminderDetails.class.getName()).append(" WHERE reminderId = "+trxReminder.getUniqueID());
+
+                            TrxReminderDetails tr = (TrxReminderDetails) session.createQuery(hql.toString()).getSingleResult();
+                            
+                            LOG.info("TrxReminderDetails>>>>"+tr.getUniqueID());
+                            
+                            TrxReminderDetails dataTrxDetails = trxReminder.getRepeating();
+                            LOG.info("TrxReminderDetailss"+dataTrxDetails);
+                            
+                            dataTrxDetails.setUniqueID(tr.getUniqueID());
+                            dataTrxDetails.setReminderId(newTrx);
+                            dataTrxDetails.setDailyFlag(Boolean.TRUE);
+                            dataTrxDetails.setUserId(newTrx.getUserId());
+                            Condition condition = trxReminder.getRepeating().getCondition();
+                            LOG.info("condition"+condition);
+
+                             if (condition != null && trxReminder.getRepeating().getFrequencyID() != null) {
+                            //(Yearly)
+                            if (condition.getDate() != null && condition.getMonth() != null) {
+                                dataTrxDetails.setYearlyFlag(Boolean.TRUE);
+                                dataTrxDetails.setYearDate(condition.getDate());
+                                dataTrxDetails.setYearMonth(condition.getMonth());
+                            } 
+                            //(Monthly)
+                            else if (condition.getDate() != null) {
+                                dataTrxDetails.setMonthlyFlag(Boolean.TRUE);
+                                dataTrxDetails.setMonthDate(condition.getDate());
+                            }  
+                            //(Weekly)
+                            else if (condition.getDay() != null) {
+                                dataTrxDetails.setWeeklyFlag(Boolean.TRUE);
+                                dataTrxDetails.setWeekDay(condition.getDay());
+                            }
+                            //(Monthly for EndOfMonth)
+                            else if (condition.getEndOfMonth()) {
+                                dataTrxDetails.setEomFlag(Boolean.TRUE);
+                            }
+                            //(Daily)
+                        } else if (trxReminder.getRepeating().getFrequencyID() != null) {
+                            dataTrxDetails.setDailyFlag(Boolean.TRUE);
+                        }
+                        LOG.info("dataTrxDetails"+dataTrxDetails);
+                        session.merge(dataTrxDetails);
+          
                         }
 
-                        LOG.info("hellllo" + reminders);
                         pMsg.setMessage("Update success");
                         pMsg.setStatus("200");
                     }
