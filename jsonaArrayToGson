@@ -1,8 +1,11 @@
-JsonObject jsonObject = new JsonParser().parse(object.getData().toString()).getAsJsonObject();
-System.out.println("jsonObject === "+jsonObject);
 
-JsonArray reminders = (JsonArray) jsonObject.get("reminders");
-System.out.println("reminders === "+reminders.size());
-
-for (int i = 0; i < reminders.size(); i++) {
-System.out.println("remindersSize"+i+" === "+" "+reminders.get(i));
+                        JSONObject jsonObject = new JSONObject(mJsonData.toString());
+                        LOG.info("jsonObject"+jsonObject);
+                        JSONArray remindes = jsonObject.getJSONArray("reminders");
+                        Gson gson = new Gson();
+                        for (int i = 0; i < remindes.length(); i++) {
+                            LOG.info("remindes>>>"+remindes.get(i));
+                            TrxReminder trx = gson.fromJson(remindes.get(i).toString(), TrxReminder.class);
+                            LOG.info("trx>>>"+trx+" i "+i);
+                        }
+                       
