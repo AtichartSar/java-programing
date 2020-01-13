@@ -1,5 +1,6 @@
- if (object.getTarget().equals("GetSelling") && object.getModule().equals("Report")) {
+else if (object.getTarget().equals("GetSelling") && object.getModule().equals("Report")) {
                         //#######################[ Get Report Selling ]########################// 
+                        pMsg = new ProcMessageEntry();
                         String userId = parseJWT(object.getToken());
                         // Parse Gson to Json
                         Gson gson = new Gson();
@@ -7,13 +8,9 @@
 
                         // Get DataFrom Json 
                         JSONObject jsonobj = new JSONObject(jsonString);
-                        String startDateObj = jsonobj.get("startDate").toString();
-                        String endDateObj = jsonobj.get("endDate").toString();
-                        long startDate = startDateObj != null
-                                ? (long) (Double.parseDouble(startDateObj)) : 0;
-                        long endDate = endDateObj != null
-                                ? (long) (Double.parseDouble(endDateObj)) : 0;
-
+                        long startDate = (long) (Double.parseDouble( jsonobj.get("startDate").toString())) ;                        
+                        long endDate = (long) (Double.parseDouble( jsonobj.get("endDate").toString()));
+                              
                         // Query Zone  
                         StringBuilder hql = new StringBuilder();
                         boolean haveDate = (endDate > 0) && (startDate > 0);
@@ -21,7 +18,7 @@
                                 .append(VgetREeportSelling.class.getName())
                                 .append(
                                         haveDate
-                                                ? " WHERE userId = "+userId+" and DATETIME BETWEEN " + startDate + " AND " + endDate + "ORDER BY DATETIME"
+                                                ? " WHERE userId = " + userId + " and DATETIME BETWEEN " + startDate + " AND " + endDate + "ORDER BY DATETIME"
                                                 : " "
                                 );
 
@@ -71,7 +68,7 @@
                         //######[ Zone Create Json obj by Gson list ]####
 
                         //Parse json->Gson
-                        Object res = gson.fromJson(entrie.toString(), LinkedTreeMap.class);
+                        Object[] res = gson.fromJson(listFinal.toString(), LinkedTreeMap[].class);
                         LOG.info("results" + gson.toJson(entrie));
 
                         // Return Result  
@@ -79,4 +76,4 @@
                         pMsg.setEntries(res);
                         pMsg.setStatus("200");
                         pMsg.setMessage("Get Report Selling successful");
-                    }
+                    } 
