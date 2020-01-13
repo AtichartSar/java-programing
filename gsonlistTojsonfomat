@@ -1,0 +1,82 @@
+ if (object.getTarget().equals("GetSelling") && object.getModule().equals("Report")) {
+                        //#######################[ Get Report Selling ]########################// 
+                        String userId = parseJWT(object.getToken());
+                        // Parse Gson to Json
+                        Gson gson = new Gson();
+                        String jsonString = gson.toJson(object.getData());
+
+                        // Get DataFrom Json 
+                        JSONObject jsonobj = new JSONObject(jsonString);
+                        String startDateObj = jsonobj.get("startDate").toString();
+                        String endDateObj = jsonobj.get("endDate").toString();
+                        long startDate = startDateObj != null
+                                ? (long) (Double.parseDouble(startDateObj)) : 0;
+                        long endDate = endDateObj != null
+                                ? (long) (Double.parseDouble(endDateObj)) : 0;
+
+                        // Query Zone  
+                        StringBuilder hql = new StringBuilder();
+                        boolean haveDate = (endDate > 0) && (startDate > 0);
+                        hql.append(" FROM ")
+                                .append(VgetREeportSelling.class.getName())
+                                .append(
+                                        haveDate
+                                                ? " WHERE userId = "+userId+" and DATETIME BETWEEN " + startDate + " AND " + endDate + "ORDER BY DATETIME"
+                                                : " "
+                                );
+
+                        // Get Results From Query
+                        Query qy = session.createQuery(hql.toString()).setMaxResults(30);
+                        List<VgetREeportSelling> results = qy.getResultList();
+                        LOG.info("resoults" + results);
+
+                        //######[ Zone Create Json obj by Gson list ]####
+                        JSONArray list = new JSONArray();
+                        JSONObject objEntries = new JSONObject();
+                        JSONArray listFinal = new JSONArray();
+
+                        long index = 0;
+                        for (int i = 0; i < results.size(); i++) {
+                            index = results.get(i).getDateTime();
+                            System.out.println("index" + i + " " + results.get(i).getDateTime());
+
+                            //2.create list ["dateTime","list"] DISTINCT by dateTime
+                            if (i > 0) {
+                                if (results.get(i - 1).getDateTime() != index) { //dateTime[i]==dateTime[i-1] ?
+                                    objEntries.put("list", list)
+                                            .put("dateTime", results.get(i - 1).getDateTime());
+                                    listFinal.put(objEntries);
+                                    System.out.println(i + " set obj in list" + listFinal);
+                                    //new list && new obj
+                                    list = new JSONArray();
+                                    objEntries = new JSONObject();
+                                }
+                            }
+
+                            //1.create list ["amount","title"]
+                            JSONObject obj = new JSONObject();
+                            obj.put("title", results.get(i).getTitle())
+                                    .put("amount", results.get(i).getAmount());
+                            list.put(obj);
+                            System.out.println(i + " " + obj + " obj");
+
+                            //3.create list ["dateTime","list"] last list
+                            if (i == results.size() - 1) {
+                                objEntries.put("list", list).put("dateTime", results.get(i).getDateTime());
+                                listFinal.put(objEntries);
+                            }
+                        }
+                        JSONObject entrie = new JSONObject();
+                        entrie.put("entries", listFinal);
+                        //######[ Zone Create Json obj by Gson list ]####
+
+                        //Parse json->Gson
+                        Object res = gson.fromJson(entrie.toString(), LinkedTreeMap.class);
+                        LOG.info("results" + gson.toJson(entrie));
+
+                        // Return Result  
+                        LOG.info("resultss" + res);
+                        pMsg.setEntries(res);
+                        pMsg.setStatus("200");
+                        pMsg.setMessage("Get Report Selling successful");
+                    }
