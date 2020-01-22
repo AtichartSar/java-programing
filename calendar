@@ -1,0 +1,11 @@
+Calendar calendarLastDate = Calendar.getInstance();
+calendarLastDate.setTime(dd);
+int lastDate = calendarLastDate.getActualMaximum(Calendar.DATE);
+calendarLastDate.set(Calendar.DATE, lastDate);
+LOG.info("lastDate>>>" + sfd.format(calendarLastDate.getTime()));
+
+Calendar calendarFirstDate = Calendar.getInstance();
+calendarFirstDate.setTime(dd);
+int firstDate = calendarFirstDate.getActualMinimum(Calendar.DATE);
+calendarFirstDate.set(Calendar.DATE, firstDate);
+LOG.info("firstDate>>>" + calendarFirstDate.getTime());
