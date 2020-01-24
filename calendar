@@ -9,3 +9,29 @@ calendarFirstDate.setTime(dd);
 int firstDate = calendarFirstDate.getActualMinimum(Calendar.DATE);
 calendarFirstDate.set(Calendar.DATE, firstDate);
 LOG.info("firstDate>>>" + calendarFirstDate.getTime());
+
+
+import java.sql.Timestamp;    
+import java.util.Date;    
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+
+ public class DateToTimestampExample2 {    
+       public static void main(String args[]){  
+
+ long timestamp = 0;
+        int result = 0;
+
+        try {
+            Date date = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").parse("2020-01-06 13:14:50.083");//dd-MM-yyyy HH:mm:ss
+            timestamp = date.getTime();
+
+            result =(int)((timestamp)/1000);
+
+      System.out.println(result);
+        } catch (ParseException e) {
+            e.printStackTrace();
+        }
+
+}    
+}
