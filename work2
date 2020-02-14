@@ -1,0 +1,57 @@
+import java.util.ArrayList;
+import java.util.List;
+
+public class main {
+    public static void main(String[] args) {
+        List<Student> s=new ArrayList<>();
+
+         s.add(new Student(7,"pen"));
+         s.add(new Student(7,"pen"));
+         s.add(new Student(4,"pencil"));
+         s.add(new Student(3,"pencil"));
+         s.add(new Student(5,"labtop"));
+         s.add(new Student(5,"labtop"));
+    for (Student a:s){
+        total(a.getName(),s);
+    }
+
+
+    }
+    public static void total(String nam,List<Student> s){
+        int count=  s
+                .stream()
+                .filter(name->name.getName().equals(nam))
+                .reduce(0, (partialAgeResult, student) -> partialAgeResult + student.getStock(),Integer::sum);
+        System.out.println(count);
+
+    }
+}
+
+
+
+class Student{
+    public  int stock;
+    public  String name;
+
+
+    public Student(int stock, String name) {
+        this.stock = stock;
+        this.name = name;
+    }
+
+    public int getStock() {
+        return stock;
+    }
+    public void setStock(int stock) {
+        this.stock = stock;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+}
+
