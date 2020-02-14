@@ -1,0 +1,781 @@
+/*
+ * To change this license header, choose License Headers in Project Properties.
+ * To change this template file, choose Tools | Templates
+ * and open the template in the editor.
+ */
+package com.arg.gsbea.core.home;
+
+import com.arg.gsbea.core.aut.AutUserDao;
+import com.arg.gsbea.common.core.ProcMessage;
+import com.arg.gsbea.common.core.TransactionalProcessor;
+import com.arg.gsbea.common.dao.CommonDao;
+import com.arg.gsbea.common.model.aut.AcmoBizModel;
+import com.arg.gsbea.common.model.aut.BusinessInformation;
+import com.arg.gsbea.common.model.data.TransactionModuleDataModel;
+import com.arg.gsbea.common.model.data.TscBuySellCash;
+import com.arg.gsbea.common.model.data.TscBuySellCashItem;
+import com.arg.gsbea.common.model.data.TscBuySellCashItemPic;
+
+import com.arg.gsbea.common.model.customer.DCMAccount;
+import com.arg.gsbea.common.model.data.MyDateTypeAdapter;
+import com.arg.gsbea.common.model.data.Record;
+import com.arg.gsbea.common.model.data.ServiceAddIncomeExpense;
+import com.arg.gsbea.common.model.data.TscIncomeExpense;
+import com.arg.gsbea.common.model.data.TscIncomeExpenseChequeInf;
+import com.arg.gsbea.common.model.finance.FinBankAccount;
+import com.arg.gsbea.common.model.reminder.Condition;
+import com.arg.gsbea.common.model.reminder.TrxReminder;
+import com.arg.gsbea.common.model.reminder.TrxReminderDetails;
+import com.arg.gsbea.common.model.stock.SmmProduct;
+import com.arg.gsbea.common.util.SearchBean;
+import java.util.Map;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+
+import java.sql.Timestamp;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+
+import java.text.SimpleDateFormat;
+import java.util.Date;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.hibernate.Session;
+import org.hibernate.Transaction;
+import org.hibernate.annotations.DynamicUpdate;
+
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonElement;
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.Jwts;
+import java.math.BigDecimal;
+import java.text.ParseException;
+import java.util.ArrayList;
+import org.json.JSONArray;
+import org.json.JSONObject;
+import java.util.Date;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.stream.DoubleStream;
+import javax.xml.bind.DatatypeConverter;
+import javax.persistence.ParameterMode;
+import org.hibernate.procedure.ProcedureCall;
+import org.hibernate.query.NativeQuery;
+import org.hibernate.query.Query;
+
+/**
+ *
+ * @author navaployw
+ */
+@DynamicUpdate(true)
+public class InsertDao extends CommonDao {
+
+    private static final Logger LOG = LogManager.getLogger(InsertDao.class.getName());
+
+    private static InsertDao INSTANCE;
+
+    ProcMessage pMsg = new ProcMessage();
+
+    JSONObject obj = new JSONObject();
+
+    JSONArray arr = new JSONArray();
+
+    public static InsertDao getInstance() {
+
+        if (INSTANCE == null) {
+
+            INSTANCE = new InsertDao();
+
+        }
+
+        return INSTANCE;
+
+    }
+
+    public ProcMessage insertEvent(String data) {
+        LOG.info("data>>>" + data);
+        pMsg = new ProcMessage();
+
+        try {
+
+            (new TransactionalProcessor() {
+
+                @Override
+
+                public void process(Session session, Transaction tx) throws Exception {
+
+                    AcmoBizModel object = parseModel(data);
+                    JsonParser parserData = new JsonParser();
+
+                    Gson gsonData = new Gson();
+                    Gson gson = new GsonBuilder().setDateFormat("dd-MM-yyyy HH:mm:ss").create();
+                    JsonElement mJsonData = parserData.parse(gsonData.toJson(object.getData()));
+
+                    if (object.getTarget().equals("BusinessInfo") && object.getModule().equals("BIZPreset")) {
+                        LOG.info("object>>>" + object);
+                        String userId = parseJWT(object.getToken());
+                    
+                    StringBuilder sb = new StringBuilder();
+                    sb.append("select EMAIL from AUT_USER where USER_ID = '"+userId+"' and REGISTER_FLAG = 'true' and DELETE_FLAG = 'false'");
+                   
+                    NativeQuery sql = session.createNativeQuery(sb.toString());
+                    sql.uniqueResult();
+                    
+                    String email = (String) sql.uniqueResult();
+                    
+                    LOG.info("NativeQuery ==> "+email);
+
+                        BusinessInformation data = gsonData.fromJson(mJsonData, BusinessInformation.class);
+                        data.setUserId(userId);
+                        data.setMail(email);
+
+                        session.saveOrUpdate(data);
+                        pMsg.setMessage("Create preset successful");
+                        pMsg.setStatus(200);
+                    } //<======================[ Transaction : Add Buy/Sell ]======================> 
+                    else if (object.getModule().equals("BIZTransaction") && object.getTarget().equals("AddBuySell")) {
+
+                        //<===[ get userID ]===>
+                        String user = parseJWT(object.getToken());
+                        long userId = Long.valueOf(user);
+
+                        //<===[ Parse Timestamp To date ]===>
+                        Gson gsons = new GsonBuilder()
+                                .registerTypeAdapter(Date.class, new MyDateTypeAdapter())
+                                .setDateFormat("dd-MM-yyyy HH:mm:ss")
+                                .create();
+                        JSONObject objs = new JSONObject(mJsonData.toString());
+                        Double createNo = (Double) objs.get("created");
+                        objs.put("createdNo", createNo);
+                        objs.put("deleteFlag", false);
+
+                        //<===[ Parse => Gson TscBuySellCash ]====>
+                        JsonElement dataTscBuySellCashJson = new JsonParser().parse(objs.toString());
+                        TscBuySellCash dataTscBuySellCash = gsons.fromJson(dataTscBuySellCashJson, TscBuySellCash.class);
+
+                        //<===[ Already DocumentNo ]===>
+                        String docNo = dataTscBuySellCash.getDocumentNo();
+                        long transactionTypeID = dataTscBuySellCash.getTransactionTypeID();
+                        boolean alreadyDocumentNo = myCheckDocumentNo(session, docNo, userId, transactionTypeID);
+                        if (alreadyDocumentNo && (!docNo.isEmpty() || !"".equals(docNo))) {
+                            pMsg.setStatus(300);
+                            pMsg.setMessage("เลขที่เอกสารซ้ำ");
+                        } 
+                        
+                        //<===[ 1 sell ]===>
+                        else if (dataTscBuySellCash.getTransactionTypeID().equals(1L)) {
+                            boolean canSellitems = myCheckItemsInStock(session, dataTscBuySellCash);
+                            if (canSellitems) {
+                                boolean checkSell = mySaveAddSell(session, userId, dataTscBuySellCash);
+                                pMsg.setStatus(200);
+                                pMsg.setMessage("Add Buy/Sell successful");
+                            } else {
+                                pMsg.setStatus(300);
+                                pMsg.setMessage("สินค้าไม่เพียงพอสำหรับขาย");
+                            }
+                        }
+                        //<===[ 2 buy ]===>
+                        else if (dataTscBuySellCash.getTransactionTypeID().equals(2L)) {
+                            BigDecimal amount = myCalToTalAddBuySell(dataTscBuySellCash);
+                            boolean balanceMoreAmount = myCheckBalance(session, dataTscBuySellCash, userId, amount);
+                            if (balanceMoreAmount) {
+                                boolean checkBuy = mySaveAddBuy(session, userId, dataTscBuySellCash);
+                                pMsg.setMessage("Add Buy/Sell successful");
+                                pMsg.setStatus(200);
+                            } else {
+                                pMsg.setMessage("ยอดเงินคงเหลือไม่เพียงพอ");
+                                pMsg.setStatus(300);
+                            }
+                        } else {
+                            pMsg.setMessage("Error TransactionID Not Found");
+                        }
+
+                    } //<==================[ Transaction : Add Income/Expense ]===================>
+                    else if (object.getTarget().equals("AddIncomeExpense") && object.getModule().equals("BIZTransaction")) {
+
+                        //<===[ Get userID ]===>
+                        String user = parseJWT(object.getToken());
+                        Integer userId = Integer.valueOf(user);
+
+                        //<===[ Parse Timestamp To date ]===>
+                        Gson gsons = new GsonBuilder()
+                                .registerTypeAdapter(Date.class, new MyDateTypeAdapter())
+                                .setDateFormat("dd-MM-yyyy HH:mm:ss")
+                                .create();
+                        JSONObject objs = new JSONObject(mJsonData.toString());
+                        Double createNo = (Double) objs.get("created");
+                        objs.put("createdNo", createNo);
+                        objs.put("deleteFlag", false);
+
+                        //<===[ Parse Gson TscIncomeExpense ]===>
+                        JsonElement jsonElement = new JsonParser().parse(objs.toString());
+                        TscIncomeExpense dataTscIncome = gsons.fromJson(jsonElement, TscIncomeExpense.class);
+
+                        //<=========================[ SAVE_AREA ]========================>
+                        //1.TscIncomeExpense
+                        //2.TscIncomeExpenseChequeInf
+                        ServiceAddIncomeExpense service = new ServiceAddIncomeExpense();
+
+                        //<===[ Expense ]===>
+                        if (dataTscIncome.getTransactionTypeID().equals(4L)) {
+                            //<===[ Balance More Than Amount ? ]===>
+                            boolean balanceMoreAmount = service.myCheckBalance(session, dataTscIncome, userId);
+                            if (balanceMoreAmount) {
+                                //<===[ Save Expense รายจ่าย ]===>
+                                service.mySaveIncomeExpense(session, dataTscIncome, userId);
+                                pMsg.setMessage("Add Expense successful");
+                                pMsg.setStatus(200);
+                            } else {
+                                pMsg.setMessage("ยอดเงินคงเหลือไม่เพียงพอ");
+                                pMsg.setStatus(300);
+                            }
+                        } 
+                        
+                        //<===[ Income ]===>
+                        else if (dataTscIncome.getTransactionTypeID().equals(3L)) {
+                            //<===[ Save Income รายได้ ]===>
+                            service.mySaveIncomeExpense(session, dataTscIncome, userId);
+                            pMsg.setMessage("Add Income successful");
+                            pMsg.setStatus(200);
+                        } else {
+                            pMsg.setMessage("Error TransactionID Not Found");
+                            pMsg.setStatus(300);
+                        }
+                    } else if (object.getTarget().equals("AddAccount") && object.getModule().equals("BIZDiCuMGMT")) {
+
+                        String userID = AutUserDao.getInstance().getUserFromToken(object.getToken());
+
+                        DCMAccount dcm = gsonData.fromJson(mJsonData, DCMAccount.class);
+                        dcm.setUserID(Integer.parseInt(userID));
+
+                        for (Map.Entry<String, String> entry : dcm.getSocial().entrySet()) {
+                            switch (entry.getKey()) {
+                                case "facebook":
+                                    dcm.setFBname(entry.getValue());
+                                    break;
+                                case "instagram":
+                                    dcm.setIGname(entry.getValue());
+                                    break;
+                                case "line":
+                                    dcm.setLINEname(entry.getValue());
+                                    break;
+                            }
+                        }
+                        setCreated(dcm);
+
+                        session.save(dcm);
+                        pMsg.setMessage("Add Account successful");
+                        pMsg.setStatus(200);
+                    } else if (object.getTarget().equals("AddBank") && object.getModule().equals("BIZFinance")) {
+                        //****************************** AddBankAccount****************************************//
+                        LOG.info("object>>>" + object.getData());
+                        String userId = AutUserDao.getInstance().getUserFromToken(object.getToken());
+                        Gson gsondata = new GsonBuilder().setDateFormat("dd-MM-yyyy HH:mm:ss").create();
+                        JSONObject jsonObject = new JSONObject(mJsonData.toString());
+
+                        if (jsonObject.has("updateDate") && !jsonObject.isNull("updateDate")) {
+                            String updated = jsonObject.get("updateDate").toString();
+                            Date fCreated = new Date((long) (Double.parseDouble(updated) * 1000));
+                            SimpleDateFormat sf = new SimpleDateFormat("dd-MM-yyyy HH:mm:ss");
+                            Integer updatedInt = jsonObject.getInt("updateDate");
+
+                            if (updatedInt == 0) {
+                                jsonObject.remove("updateDate");
+                            } else {
+                                jsonObject.put("updateDate", sf.format(fCreated));
+                            }
+                        }
+
+                        String created = jsonObject.get("created").toString();
+                        Integer crea = jsonObject.getInt("created");
+
+                        Date dCreated = new Date((long) (Double.parseDouble(created) * 1000));
+
+                        SimpleDateFormat sm = new SimpleDateFormat("dd-MM-yyyy HH:mm:ss");
+                        jsonObject.put("created", sm.format(dCreated));
+                        JsonElement jsonElement = new JsonParser().parse(jsonObject.toString());
+
+                        FinBankAccount data = gsondata.fromJson(jsonElement, FinBankAccount.class);
+                        data.setUserId(Integer.parseInt(userId));
+                        data.setCreat(crea);
+                        session.saveOrUpdate(data);
+
+                        pMsg.setMessage("Add Bank account successful");
+                        pMsg.setStatus(200);
+                    } else if (object.getTarget().equals("AddReminder") && object.getModule().equals("BIZReminder")) {
+                        //<======================[  Add Reminder ]====================>
+
+                        //<===[ Get userID ]===>
+                        String user = parseJWT(object.getToken());
+                        Integer userId = Integer.valueOf(user);
+                        //<=========================[ SAVE_AREA ]========================>
+
+                        //1.TrxReminder
+                        //2.TrxReminderDetails
+                        //<===[ FixUnique = -1 ]===>
+                        JSONObject jsonObject = new JSONObject(mJsonData.toString());
+                        jsonObject.remove("uniqueID");
+                        jsonObject.getJSONObject("repeating").remove("uniqueID");
+
+                        //<===[ Save Gson TrxReminder ]===>
+                        TrxReminder dataTrx = gson.fromJson(jsonObject.toString(), TrxReminder.class);
+                        setCreated(dataTrx);
+                        dataTrx.setUserId(userId);
+                        session.saveOrUpdate(dataTrx);
+                        session.flush();
+
+                        //<===[ save Gson TrxReminderDetails ]====>
+                        TrxReminderDetails dataTrxDetails = dataTrx.getRepeating();
+                        Condition condition = dataTrx.getRepeating().getCondition();
+                        if (condition != null && dataTrx.getRepeating().getFrequencyID() != null) {
+                            //(Yearly)
+                            if (condition.getDate() != null && condition.getMonth() != null) {
+                                dataTrxDetails.setYearlyFlag(Boolean.TRUE);
+                                dataTrxDetails.setYearDate(condition.getDate());
+                                dataTrxDetails.setYearMonth(condition.getMonth());
+                            } //(Monthly)
+                            else if (condition.getDate() != null) {
+                                dataTrxDetails.setMonthlyFlag(Boolean.TRUE);
+                                dataTrxDetails.setMonthDate(condition.getDate());
+                            } //(Weekly)
+                            else if (condition.getDay() != null) {
+                                dataTrxDetails.setWeeklyFlag(Boolean.TRUE);
+                                dataTrxDetails.setWeekDay(condition.getDay());
+                            } //(Monthly for EndOfMonth)
+                            else if (condition.getEndOfMonth()) {
+                                dataTrxDetails.setEomFlag(Boolean.TRUE);
+                            }
+                            //(Daily)
+                        } else if (dataTrx.getRepeating().getFrequencyID() != null) {
+                            dataTrxDetails.setDailyFlag(Boolean.TRUE);
+                        }
+                        setCreated(dataTrxDetails);
+                        dataTrxDetails.setReminderId(dataTrx);
+                        dataTrxDetails.setUserId(userId);
+                        session.saveOrUpdate(dataTrxDetails);
+
+                        //<===[ Return Result ]===>
+                        pMsg.setMessage("Add Reminder successful");
+                        pMsg.setStatus(200);
+                    } //<===[ my Test function ]===>
+                    else if (object.getTarget().equals("AddTarget") && object.getModule().equals("AddModule")) {
+             
+//                        myCalToTalItem();
+                    } else {
+                        pMsg.setStatus(404);
+                        pMsg.setMessage("undefined function please check Module or Target");
+                    }
+
+                }
+
+            }).process();
+
+        } catch (Exception e) {
+
+            e.getMessage();
+            pMsg.setMessage(e.getMessage());
+            pMsg.setStatus(500);
+
+        }
+
+        return pMsg;
+
+    }
+
+    public static boolean myCheckDocumentNo(Session session, String docNo, long userId, long transactionTypeID) {
+        StringBuilder hql = new StringBuilder();
+        String doc = docNo != null || !"".equals(docNo) ? docNo.trim() : "";
+        hql.append("From ")
+                .append(TscBuySellCash.class.getName())
+                .append(" where documentNo = '" + doc + "' and userId = " + userId + " and transactionTypeID = " + transactionTypeID);
+        Query query = session.createQuery(hql.toString());
+        List result = query.getResultList();
+        if (!result.isEmpty()) {
+            return true;
+        }
+        return false;
+    }
+
+    public static BigDecimal myCalToTalAddBuySell(TscBuySellCash dataTscBuySellCash) {
+        final boolean vat = dataTscBuySellCash.getVATInclude();
+        BigDecimal total = new BigDecimal(0);
+        if (dataTscBuySellCash.getItems() != null) {
+            int index = 0;
+            for (TscBuySellCashItem items : dataTscBuySellCash.getItems()) {
+                items.calTotalWithVat(vat);
+                total = total.add(items.getPriceVATInc());
+                LOG.info((index++) + "priceVat : " + items.getPriceVATInc());
+                LOG.info("totalAmount : " + total);
+            }
+        }
+        
+        if (dataTscBuySellCash.getGoods() != null) {
+            for (TscBuySellCashItem goods : dataTscBuySellCash.getGoods()) {
+                goods.calTotalWithVat(vat);
+                total = total.add(goods.getPriceVATInc());
+                LOG.info("priceVat : " + goods.getPriceVATInc());
+                LOG.info("goodsAmount : "+total);
+            }
+        }
+        if (dataTscBuySellCash.getNonStock() != null) {
+            for (TscBuySellCashItem itesmsNonStock : dataTscBuySellCash.getNonStock()) {
+                itesmsNonStock.calTotalWithVat(vat);
+                total = total.add(itesmsNonStock.getPriceVATInc());
+                LOG.info("priceVat : " + itesmsNonStock.getPriceVATInc());
+                LOG.info("nonStockAmount : "+total);
+            }
+        }
+        if (dataTscBuySellCash.getService() != null) {
+            for (TscBuySellCashItem services : dataTscBuySellCash.getService()) {
+                services.calTotalWithVat(vat);
+                total = total.add(services.getPriceVATInc());
+                LOG.info("priceVat : " + services.getPriceVATInc());
+                LOG.info("servicesAmount : "+total);
+            }
+        }
+        LOG.info("<===[ CalTotalfunction ]===> :" + total);
+        return total;
+    }
+
+    public boolean myCheckBalance(Session session, TscBuySellCash dataTscBuySellCash, long userID, BigDecimal amount) {
+        StringBuilder hql = new StringBuilder();
+
+        int accountID = dataTscBuySellCash.getBankAccountID().intValue();
+        int transType = dataTscBuySellCash.getTransactionTypeID().intValue();
+        hql.append(" DECLARE @STATUS_FLAG bit "
+                + " EXEC PROC_CHECK_BALANCE @STATUS_FLAG output," + userID + "," + accountID + "," + transType + "," + amount.setScale(6,BigDecimal.ROUND_HALF_UP) + " "
+                + " SELECT @STATUS_FLAG as flag ");
+        Query query = session.createNativeQuery(hql.toString());
+        Object statusFlag = query.getSingleResult();
+        if (statusFlag != null) {
+            return (boolean) statusFlag;
+        }
+        return false;
+    }
+
+    public static boolean myCheckItemsInStock(Session session, TscBuySellCash dataTscBuySellCash) {
+        List<TscBuySellCashItem> items = dataTscBuySellCash.getItems();
+        Set itemIds = new HashSet();
+        boolean totalCheckstock = true;
+        
+        //<===[ GroupByItemsId ]===>
+        for (int i = 0; i < items.size(); i++) {
+            itemIds.add(items.get(i).getUniqueID());
+        }
+        LOG.info("nameItems : " + itemIds);
+        
+        //<===[ CheckStockByItemsId ]===>
+        LOG.info("<=====[ loopCheckstock ]=====>");
+        for (Object itemId : itemIds) {
+            long count = calTotalQuantitybyItemId((long) itemId, items);
+            boolean stockMoreItem = myCheckstock(session, (long) itemId, count);
+            totalCheckstock = totalCheckstock && stockMoreItem;
+            
+            LOG.info("stockMoreItem : " + stockMoreItem + " itemId : " + itemId);
+        }
+        LOG.info("myCheckStock : " + totalCheckstock);
+        return totalCheckstock;
+    }
+
+    public static long calTotalQuantitybyItemId(long itemId, List<TscBuySellCashItem> items) {
+        //<===[ SumQuantityByItemsId ]===>
+        Long total = items
+                .stream()
+                .filter(item -> item.getUniqueID().equals(itemId))
+                .mapToLong(item -> item.getRecord().getQuantity())
+                .sum();
+        System.out.println("<===[ SumQuantityByItemsId ]===> :" + total + " itemId : " + itemId);
+        return total;
+    }
+    
+    public static boolean myCheckstock(Session session,long uniqueID,long quantity ) {
+        StringBuilder hql = new StringBuilder();
+        hql.append("DECLARE @STATUS bit ")
+                .append("exec PROC_CHECK_STOCK_AVAILIABLE @STATUS out ," + uniqueID + "," + quantity + " ")
+                .append(" SELECT @STATUS as STATUS ");
+        Query qr = session.createNativeQuery(hql.toString());
+        boolean value = (Boolean) qr.getSingleResult();
+        return value;
+    }
+
+    public static boolean mySaveAddBuy(Session session, long userId, TscBuySellCash dataTscBuySellCash) {
+        //<=========================[ SAVE_AREA ]========================>
+        //1.TscBuySellCash
+        //2.TscBuySellCashItem
+        //3.TscBuySellCashItemPic
+
+        boolean checkSave = true;
+        Date dateCreate = dataTscBuySellCash.getCreated();
+        final String headProc = "EXEC PROC_UPDATE_STOCK_MOVEMENT null,null," + userId + ", ";
+        final long tid = dataTscBuySellCash.getTransactionTypeID();
+        final boolean vat = dataTscBuySellCash.getVATInclude();
+
+        //<===[ Save Items TscBuySellCashItem ]===>
+        if (dataTscBuySellCash.getItems() != null) {
+            for (TscBuySellCashItem items : dataTscBuySellCash.getItems()) {
+
+                items.setItemTypeId(1L);
+                items.setTscId(dataTscBuySellCash);
+                items.setCreateDate(dateCreate);
+                items.setUserId(userId);
+                /*
+                     Fix 1). calPriceWithVat ==> priceVATInc = (record.Price*0.7) / (record.Quantity)
+                         2). calCostExc     ==> costVATExc = record.Price / record.Quantity
+                 */
+                items.calPriceWithVat(vat);
+                items.setQuantity(items.getRecord().getQuantity());
+                items.calCostExc();
+
+                session.saveOrUpdate(items);
+                session.flush();
+                //<===[ Save TscBuySellCashItemPic ]===>
+                if (items.getImages() != null) {
+                    for (TscBuySellCashItemPic images : items.getImages()) {
+
+                        images.setTscItemId(items);
+                        images.setCreateDate(dateCreate);
+                        session.saveOrUpdate(images);
+                        session.flush();
+                    }
+                }
+                NativeQuery sql = session.createNativeQuery(headProc + items.getQuantity() + ", " + items.getUniqueID() + ", '" + items.getRemark() + "', " + tid);
+                sql.executeUpdate();
+            }
+        }
+
+        //<===[ Save goods TscBuySellCashItem ]===>
+        if (dataTscBuySellCash.getGoods() != null) {
+            for (TscBuySellCashItem goods : dataTscBuySellCash.getGoods()) {
+
+                goods.setItemTypeId(4L);
+                goods.setTscId(dataTscBuySellCash);
+                goods.setCreateDate(dateCreate);
+                goods.setUserId(userId);
+                goods.calPriceWithVat(vat); // 1). calPriceWithVat ==> priceVATInc = (record.Price*0.7) / (record.Quantity)
+                goods.setQuantity(goods.getRecord().getQuantity());
+                goods.calCostExc();
+
+                session.saveOrUpdate(goods);
+                session.flush();
+                //<===[ save TscBuySellCashItemPic ]===>
+                if (goods.getImages() != null) {
+                    for (TscBuySellCashItemPic images : goods.getImages()) {
+
+                        images.setTscItemId(goods);
+                        images.setCreateDate(dateCreate);
+                        session.saveOrUpdate(images);
+                        session.flush();
+                    }
+                }
+                NativeQuery sql = session.createNativeQuery(headProc + goods.getQuantity() + ", " + goods.getUniqueID() + ", '" + goods.getRemark() + "', " + tid);
+                sql.executeUpdate();
+            }
+        }
+
+        //<===[ Save service TscBuySellCashItem ]===>
+        if (dataTscBuySellCash.getService() != null) {
+            for (TscBuySellCashItem services : dataTscBuySellCash.getService()) {
+
+                services.setItemTypeId(3L);
+                services.setTscId(dataTscBuySellCash);
+                services.setCreateDate(dateCreate);
+                services.setUserId(userId);
+
+                services.calPriceWithVat(vat);   //1). calPriceWithVat ==> priceVATInc = (record.Price*0.7) / (record.Quantity)
+                services.setQuantity(services.getRecord().getQuantity());
+                services.calCostExc();
+
+                session.saveOrUpdate(services);
+                session.flush();
+                //<===[ Save TscBuySellCashItemPic ]===>
+                if (services.getImages() != null) {
+                    for (TscBuySellCashItemPic images : services.getImages()) {
+
+                        images.setTscItemId(services);
+                        images.setCreateDate(dateCreate);
+                        session.saveOrUpdate(images);
+                        session.flush();
+                    }
+                }
+                NativeQuery sql = session.createNativeQuery(headProc + services.getQuantity() + ", " + services.getUniqueID() + ", '" + services.getRemark() + "', " + tid);
+                sql.executeUpdate();
+            }
+        }
+
+        //<===[ Save TscBuySellCash ]===>
+        dataTscBuySellCash.setUserId(userId);
+        dataTscBuySellCash.setTransDate(new Date());
+        session.saveOrUpdate(dataTscBuySellCash);
+
+        return checkSave;
+    }
+
+    public static boolean mySaveAddSell(Session session, long userId, TscBuySellCash dataTscBuySellCash) {
+        //<=========================[ SAVE_AREA ]========================>
+        //1.TscBuySellCash
+        //2.TscBuySellCashItem
+        //3.TscBuySellCashItemPic
+
+        boolean checkSave = true;
+        Date dateCreate = dataTscBuySellCash.getCreated();
+        final String headProc = "EXEC PROC_UPDATE_STOCK_MOVEMENT null,null," + userId + ", ";
+        final long tid = dataTscBuySellCash.getTransactionTypeID();
+        final boolean vat = dataTscBuySellCash.getVATInclude();
+
+        //<===[ Save Items TscBuySellCashItem ]===>
+        if (dataTscBuySellCash.getItems() != null) {
+            for (TscBuySellCashItem items : dataTscBuySellCash.getItems()) {
+
+                    items.setItemTypeId(1L);
+                    items.setTscId(dataTscBuySellCash);
+                    items.setCreateDate(dateCreate);
+                    items.setUserId(userId);
+
+                    //calPriceWithVat ==> priceVATInc = ((record.Price / record.Quantity)*0.07 )+(record.Price / record.Quantit)
+                    items.calPriceWithVat(vat);
+                    items.setQuantity(items.getRecord().getQuantity());
+                    LOG.info("calPriceWithVat" + items.getPriceVATInc());
+                    session.saveOrUpdate(items);
+                    session.flush();
+                    //<===[ Save TscBuySellCashItemPic ]===>
+                    if (items.getImages() != null) {
+                        for (TscBuySellCashItemPic images : items.getImages()) {
+
+                            images.setTscItemId(items);
+                            images.setCreateDate(dateCreate);
+                            session.saveOrUpdate(images);
+                            session.flush();
+                        }
+                    }
+                    NativeQuery sql = session.createNativeQuery(headProc + items.getQuantity() + ", " + items.getUniqueID() + ", '" + items.getRemark() + "', " + tid);
+                    sql.executeUpdate();
+
+                } 
+            
+        }
+        //<===[ Save nonStock TscBuySellCashItem ]===>
+        if (dataTscBuySellCash.getNonStock() != null) {
+            for (TscBuySellCashItem nonStock : dataTscBuySellCash.getNonStock()) {
+
+                nonStock.setItemTypeId(2L);
+                nonStock.setTscId(dataTscBuySellCash);
+                nonStock.setCreateDate(dateCreate);
+                nonStock.setUserId(userId);
+
+                // 1). calPriceWithVat ==> priceVATInc = ((record.Price / record.Quantity)*0.07 )+(record.Price / record.Quantit)
+                nonStock.calPriceWithVat(vat);
+                nonStock.setQuantity(nonStock.getRecord().getQuantity());
+                LOG.info("calPriceWithVat" + nonStock.getPriceVATInc());
+                session.saveOrUpdate(nonStock);
+                session.flush();
+                //<===[ Save TscBuySellCashItemPic ]===>
+                if (nonStock.getImages() != null) {
+                    for (TscBuySellCashItemPic images : nonStock.getImages()) {
+
+                        images.setTscItemId(nonStock);
+                        images.setCreateDate(dateCreate);
+                        session.saveOrUpdate(images);
+                        session.flush();
+                    }
+                }
+                NativeQuery sql = session.createNativeQuery(headProc + nonStock.getQuantity() + ", " + nonStock.getUniqueID() + ", '" + nonStock.getRemark() + "', " + tid);
+                sql.executeUpdate();
+
+            }
+        }
+
+        //<===[ Save goods TscBuySellCashItem ]===>
+        if (dataTscBuySellCash.getGoods() != null) {
+            for (TscBuySellCashItem goods : dataTscBuySellCash.getGoods()) {
+
+                goods.setItemTypeId(4L);
+                goods.setTscId(dataTscBuySellCash);
+                goods.setCreateDate(dateCreate);
+                goods.setUserId(userId);
+
+                //1). calPriceWithVat ==> priceVATInc = ((record.Price / record.Quantity)*0.07 )+(record.Price / record.Quantit)
+                goods.calPriceWithVat(vat);
+                goods.setQuantity(goods.getRecord().getQuantity());
+                session.saveOrUpdate(goods);
+                session.flush();
+                //<===[ save TscBuySellCashItemPic ]===>
+                if (goods.getImages() != null) {
+                    for (TscBuySellCashItemPic images : goods.getImages()) {
+
+                        images.setTscItemId(goods);
+                        images.setCreateDate(dateCreate);
+                        session.saveOrUpdate(images);
+                        session.flush();
+                    }
+                }
+                NativeQuery sql = session.createNativeQuery(headProc + goods.getQuantity() + ", " + goods.getUniqueID() + ", '" + goods.getRemark() + "', " + tid);
+                sql.executeUpdate();
+            }
+        }
+
+        //<===[ Save service TscBuySellCashItem ]===>
+        if (dataTscBuySellCash.getService() != null) {
+            for (TscBuySellCashItem services : dataTscBuySellCash.getService()) {
+
+                services.setItemTypeId(3L);
+                services.setTscId(dataTscBuySellCash);
+                services.setCreateDate(dateCreate);
+                services.setUserId(userId);
+
+                //1). calPriceWithVat ==> priceVATInc = ((record.Price / record.Quantity)*0.07 )+(record.Price / record.Quantit)
+                services.calPriceWithVat(vat);
+                services.setQuantity(services.getRecord().getQuantity());
+                session.saveOrUpdate(services);
+                session.flush();
+                //<===[ Save TscBuySellCashItemPic ]===>
+                if (services.getImages() != null) {
+                    for (TscBuySellCashItemPic images : services.getImages()) {
+
+                        images.setTscItemId(services);
+                        images.setCreateDate(dateCreate);
+                        session.saveOrUpdate(images);
+                        session.flush();
+                    }
+                }
+                NativeQuery sql = session.createNativeQuery(headProc + services.getQuantity() + ", " + services.getUniqueID() + ", '" + services.getRemark() + "', " + tid);
+                sql.executeUpdate();
+            }
+        }//<===[ Save TscBuySellCash ]===>
+      
+
+            dataTscBuySellCash.setUserId(userId);
+            dataTscBuySellCash.setTransDate(new Date());
+            session.saveOrUpdate(dataTscBuySellCash);
+
+return checkSave;
+    }
+
+    private String parseJWT(String jwt) {
+
+        long time = new Date().getTime();
+        Date expDate = new Date(time + 50001);
+
+        Claims claims = Jwts.parser()
+                .setSigningKey(DatatypeConverter.parseBase64Binary("special-key"))
+                .parseClaimsJws(jwt).getBody();
+        LOG.info("ID: " + claims.getId());
+        LOG.info("Subject: " + claims.getSubject());
+        LOG.info("Issuer: " + claims.getIssuer());
+        LOG.info("Expiration: " + claims.getExpiration());
+
+        return claims.getId();
+    }
+
+}
+/*
+//5.2.1 Add Account
+
+
+ */
