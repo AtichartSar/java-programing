@@ -1,0 +1,52 @@
+public static boolean myCheckItemsInStock(Session session, TscBuySellCash dataTscBuySellCash) {
+        List<TscBuySellCashItem> items = dataTscBuySellCash.getItems();
+        Set itemIds = new HashSet();
+        boolean totalCheckstock = true;
+        
+        //<===[ GroupByItemsId ]===>
+        for (int i = 0; i < items.size(); i++) {
+            itemIds.add(items.get(i).getUniqueID());
+        }
+        LOG.info("nameItems : " + itemIds);
+        
+        //<===[ CheckStockByItemsId ]===>
+        LOG.info("<=====[ loopCheckstock ]=====>");
+        for (Object itemId : itemIds) {
+            
+            long count = calTotalQuantitybyItemId((long) itemId, items);
+            boolean stockMoreItem = myCheckstock(session, (long) itemId, count);
+            totalCheckstock = totalCheckstock && stockMoreItem;
+            
+            LOG.info("stockMoreItem : " + count + " itemId : " + itemId);
+        }
+        LOG.info("myCheckStock : " + totalCheckstock);
+        return totalCheckstock;
+    }
+
+    private static long calTotalQuantitybyItemId(long itemId, List<TscBuySellCashItem> items) {
+        //<===[ SumQuantityByItemsId ]===>
+        
+        Long total = 0L;
+        total = items
+                .stream()
+                .filter(item -> item.getUniqueID() == itemId)
+                .map(item -> item.getRecord().getQuantity())
+                .reduce(0L, (x, y) -> x + y);
+        System.out.println("<===[ SumQuantityByItemsId ]===> :" + total + " itemId : " + itemId);
+        return total;
+    }
+    
+    private static boolean myCheckstock(Session session, long uniqueID, long quantity) {
+        StringBuilder hql = new StringBuilder();
+
+        hql.append("DECLARE @STATUS bit ")
+                .append("exec PROC_CHECK_STOCK_AVAILIABLE @STATUS out ," + uniqueID + "," + quantity + " ")
+                .append(" SELECT @STATUS as STATUS ");
+        Query qr = session.createNativeQuery(hql.toString());
+        Object value = qr.getSingleResult();
+        if (value != null) {
+            return (boolean) value;
+        } else {
+            return true;
+        }
+    }
