@@ -1,0 +1,99 @@
+/*
+ * To change this license header, choose License Headers in Project Properties.
+ * To change this template file, choose Tools | Templates
+ * and open the template in the editor.
+ */
+package com.arg.gsbea.common.myServiceAutUser;
+
+import com.arg.gsbea.common.model.aut.AutUser;
+import java.util.ArrayList;
+import java.util.List;
+import org.hibernate.Criteria;
+import org.hibernate.Session;
+import org.hibernate.criterion.Restrictions;
+
+/**
+ *
+ * @author aticharts
+ */
+public class MyServiceloginBuilder {
+
+    private Session session;
+    private List<String> concatString;
+
+    public MyServiceloginBuilder(Session session) {
+        this.session = session;
+        this.concatString=new ArrayList<>();
+    }
+
+    public List<AutUser> myResult() {
+        StringBuilder hql = new StringBuilder();
+        for (int i = 0; i < concatString.size(); i++) {
+            if (i > 0) {
+                hql.append(" and " + concatString.get(i) + "  ");
+            } else {
+                hql.append(concatString.get(i));
+            }
+        }
+        System.out.println("<===[ hqlResult ]===> :" + hql.toString());
+        Criteria criteria = session.createCriteria(AutUser.class);
+        criteria.add(Restrictions.sqlRestriction(hql.toString()));
+        List<AutUser> user = criteria.list();
+        if (!user.isEmpty()) {
+            return user;
+        }
+        return null;
+    }
+    public MyServiceloginBuilder findMyUserId(){
+        //*code Empty*//    
+        return this;
+    }
+
+    public MyServiceloginBuilder findMyUserName(String userName) {
+        StringBuilder hql = new StringBuilder();
+        hql.append(" USER_NAME = '" + userName + "' collate THAI_CI_AS ");
+        concatString.add(hql.toString());
+        return this;
+    }
+
+    public MyServiceloginBuilder findMyPassword(String password) {
+        StringBuilder hql = new StringBuilder();
+        hql.append(" PASSWORD = '" + password + "' collate THAI_CI_AS ");
+        concatString.add(hql.toString());
+        return this;
+    }
+    public MyServiceloginBuilder findMyEmail(String email) {
+        StringBuilder hql = new StringBuilder();
+        hql.append(" PASSWORD = '" + email + "' collate THAI_CI_AS ");
+        concatString.add(hql.toString());
+        return this;
+    }
+    
+    public MyServiceloginBuilder findMyregisterFlag(int flag) {
+        StringBuilder hql = new StringBuilder();
+        hql.append(" REGISTER_FLAG =  " + flag + " ");
+        concatString.add(hql.toString());
+        return this;
+    }
+
+    public MyServiceloginBuilder findMyDeleteFlag(int flag) {
+        StringBuilder hql = new StringBuilder();
+        hql.append(" DELETE_FLAG =  " + flag + " ");
+        concatString.add(hql.toString());
+        return this;
+    }
+    
+    public MyServiceloginBuilder findMyRegisterDate() {
+        //*code Empty*//
+        return this;
+    }
+    
+     
+
+}
+*********************************************************************************************************************
+ builder = new MyServiceloginBuilder(session);
+                    List<AutUser> user = builder
+                            .findMyUserName(userName)
+                            .myResult();
+                    LOG.info("user>>" + user);
