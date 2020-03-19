@@ -1,0 +1,63 @@
+ <==============[html]===============>
+ <form action="#" name="testform" method="#" id="inviter"> <span id="sendingmail"><input type="submit" name="submit" value="submit" id="sendemail"></span> </form>-->
+ <input  class="btn-uploadTest btn btn-md btn-Acmo" type="file"  id="fileName" placeholder="Choose File..." accept=""> 
+ 
+ <=============[javascript ]================>
+ var btnupload=document.querySelector('.btn-uploadTest');
+                    console.log(btnupload);
+                    btnupload.addEventListener('change',function(eventObj){
+                    let files = btnupload.files[0];
+                    console.log(files);
+                    var reader = new FileReader();
+                    reader.readAsDataURL(files);
+                    var formData = new FormData();
+                    formData.append('files', files);
+
+                    $.ajax({
+                      type:"POST",
+                      url :"http://localhost:8080/eaccount/uploadAds.htm",	    	
+                      data : formData,
+                      contentType: false,
+                      processData: false,
+                      cache : false,
+                      async : false,
+	                 	  complete: function(data){
+                      alert("upload - success");
+                      }                    
+                      });
+                      <=======[ renderimg ]=======>
+                       reader.onload = function(){
+                            var result = reader.result;
+                            console.log(result)
+                            document.querySelector(".b1").src=result;
+                       }
+   
+   <==============[ctrl]=================>                    
+    @RequestMapping(value = "/uploadImgAds.htm", method = {RequestMethod.GET, RequestMethod.POST})
+    @ResponseBody
+    public String uploadImgAds(Model model, HttpServletRequest request, HttpServletResponse response) {
+        LOG.info("<===[ uploadImgAdsCtrl ]===>");
+         JSONObject json = new JSONObject();
+        try {
+            FileItemFactory factory = new DiskFileItemFactory();
+            ServletFileUpload upload = new ServletFileUpload(factory);
+            List<FileItem> uploadItems = upload.parseRequest(request);
+            InputStream inputStream = null;
+            
+            for (FileItem uploadItem : uploadItems) {
+                LOG.info(uploadItem.getFieldName()); //name
+                inputStream = uploadItem.getInputStream();
+            }
+//           final String filePath = getFilePath();
+            final String filePath = "/home/aticharts/Desktop/overCode/";
+            String fileName =  generateUniqueFileName()+".PNG";
+            //write binaryImg to disk
+            ImageIO.write(ImageIO.read(inputStream), "png", new File(filePath+fileName)); 
+            json.put("ImageURL", fileName);
+            LOG.info(fileName);
+        } catch (Exception e) {
+            LOG.info(e.getMessage());
+        }
+        return json.toString();
+    }
+                      
