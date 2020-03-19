@@ -1,11 +1,44 @@
 
-                        JSONObject jsonObject = new JSONObject(mJsonData.toString());
-                        LOG.info("jsonObject"+jsonObject);
-                        JSONArray remindes = jsonObject.getJSONArray("reminders");
-                        Gson gson = new Gson();
-                        for (int i = 0; i < remindes.length(); i++) {
-                            LOG.info("remindes>>>"+remindes.get(i));
-                            TrxReminder trx = gson.fromJson(remindes.get(i).toString(), TrxReminder.class);
-                            LOG.info("trx>>>"+trx+" i "+i);
-                        }
-                       
+//{
+//    "target": "slidebanner",
+//    "module": "Advertise",
+//    "data": [
+//        {
+//            "id": 0,
+//            "title": "_720.jpg",
+//            "link": "www.google.com",
+//            "imageURL": " ",
+//            "file": "https://i.pinimg.com/236x/3d/8d/36/3d8d360eef28d9eac807fca2f3f84432.jpg",
+//            "$$hashKey": "object:3"
+//        },
+//        {
+//            "id": 1,
+//            "title": "721.jpg",
+//            "link": "www.facebook.com",
+//            "imageURL": " ",
+//            "file": "https://img-ha.mthcdn.com/lR_43BDfupfpAozj3oAtANYkxuY=/tech.mthai.com/app/uploads/2014/04/bliss-windowxp-1024x823.jpg",
+//            "$$hashKey": "object:4"
+//        },
+//        {
+//            "id": 2,
+//            "title": "723.jpg",
+//            "link": "www.dota2.com",
+//            "imageURL": " ",
+//            "file": "https://cdn.pixabay.com/photo/2016/05/21/18/58/vase-1407224_960_720.jpg",
+//            "$$hashKey": "object:5"
+//        }
+//    ]
+//}
+
+JSONObject jsonObject = new JSONObject(data);
+                      JSONArray AllImgAds = jsonObject.getJSONArray("data");
+                      Gson gson = new Gson();
+                      if (model.getTarget().equals("slidebanner")) {
+                          for (int i = 0; i < AllImgAds.length(); i++) {
+                              TbmAdsdata tbmdata = gson.fromJson(AllImgAds.get(i).toString(), TbmAdsdata.class);
+                              tbmdata.setPriority(1);
+                              session.saveOrUpdate(tbmdata);
+                              session.flush();
+                          }
+                          pMsg.setMessage("save slidebanner success");
+                      }
