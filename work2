@@ -1,6 +1,35 @@
 https://forum.jquery.com/topic/upload-file-and-json-data-in-the-same-post-request-using-jquery-ajax
 https://mkyong.com/spring-mvc/spring-mvc-file-upload-example/
 https://www.w3resource.com/javascript-exercises/javascript-array-exercise-20.php
+
+$scope.student=[
+                {"id":1,"name":"ra","order":0},
+                {"id":1,"name":"ra","order":2},
+                {"id":4,"name":"rf","order":3},
+                {"id":2,"name":"rs","order":1},
+                {"id":2,"name":"rs","order":1}
+            ]
+            let count = 0;
+            let countDuplicate = 0;
+            for(let i=0;i<$scope.student.length;i++){
+                for(let j=i;j<$scope.student.length;j++){
+                    if($scope.student[i].order==$scope.student[j].order){
+                        count++
+                    }
+                    if(count>1){
+                        countDuplicate++;
+                        console.log("duplicate order",$scope.student[i].order," time",countDuplicate)
+                        continue;
+                    }
+                    console.log($scope.student[i],$scope.student[j])
+                }
+                if(countDuplicate>0)
+                console.log(" time",countDuplicate)
+                count = 0;
+                countDuplicate=0
+            }
+            *******************************************
+
 import java.util.ArrayList;
 import java.util.List;
 
