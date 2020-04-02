@@ -2,6 +2,19 @@ https://forum.jquery.com/topic/upload-file-and-json-data-in-the-same-post-reques
 https://mkyong.com/spring-mvc/spring-mvc-file-upload-example/
 https://www.w3resource.com/javascript-exercises/javascript-array-exercise-20.php
 
+
+    <input type="text" class="deci" onkeypress="inputNumber(event)" maxlength="1" >
+    
+    <script>
+      function inputNumber(e){
+        console.log(e)
+        var char = String.fromCharCode(e.which)
+        if(!/^[0-9]/.test(char)){
+            e.preventDefault()
+        }
+      }
+       ...........................
+
 $scope.student=[
                 {"id":1,"name":"ra","order":0},
                 {"id":1,"name":"ra","order":2},
