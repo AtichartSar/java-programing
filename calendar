@@ -35,3 +35,11 @@ import java.text.SimpleDateFormat;
 
 }    
 }
+*************************************************************************
+        Gson gson = new GsonBuilder().setDateFormat("dd/MM/yyyy").create();
+        String value ="{\"id\":1,\"name\":\"Playstation 4\",\"created\":\"23/06/2020\",\"amount\":499.99}";
+        SimpleDateFormat formatter = new SimpleDateFormat("dd-MM-yyyy");
+        Product result = gson.fromJson(value,Product.class);
+        String strDate= formatter.format(result.getCreated());
+
+        System.out.println(strDate);
