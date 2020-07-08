@@ -42,3 +42,8 @@ JSONObject jsonObject = new JSONObject(data);
                           }
                           pMsg.setMessage("save slidebanner success");
                       }
+
+
+            Type listType = new TypeToken<List<Integer>>() {
+            }.getType();
+            List<Integer> userIdList = gson.fromJson(request.getParameter("userIdList"), listType);     
